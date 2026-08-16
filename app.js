@@ -44,10 +44,12 @@ async function fetchRadarData() {
 
         // Generazione dei layer sulla mappa
         timestamps.forEach((ts) => {
-            // Aumentata risoluzione a 512px e cambiato schema colori (6 = NEXRAD) per maggiore precisione visiva
-            const tilePath = `${data.host}${ts.path}/512/{z}/{x}/{y}/6/1_1.png`;
+            // Ripristinata la griglia 256 per l'allineamento corretto di Leaflet, schema 6 ad alto contrasto
+            const tilePath = `${data.host}${ts.path}/256/{z}/{x}/{y}/6/1_1.png`;
             const layer = L.tileLayer(tilePath, {
-                opacity: 0,
+                tileSize: 256,
+                opacity: 0.001, // 0.001 evita che i browser mobile disabilitino il rendering del livello
+                transparent: true,
                 zIndex: 10
             }).addTo(map);
             radarLayers.push(layer);
@@ -66,8 +68,8 @@ async function fetchRadarData() {
 
 // 2. Motore di Animazione
 function showFrame(index) {
-    radarLayers.forEach(layer => layer.setOpacity(0));
-    radarLayers[index].setOpacity(0.7);
+    radarLayers.forEach(layer => layer.setOpacity(0.001));
+    radarLayers[index].setOpacity(0.8);
 
     const date = new Date(timestamps[index].time * 1000);
     const timeString = date.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
