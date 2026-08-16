@@ -1,4 +1,4 @@
-const CACHE_NAME = 'radar-meteo-v1';
+const CACHE_NAME = 'radar-meteo-v2'; // Passato a v2 per forzare il refresh della cache
 const ASSETS = [
     './',
     './index.html',
@@ -8,6 +8,8 @@ const ASSETS = [
 ];
 
 self.addEventListener('install', event => {
+    // Forza il nuovo service worker ad attivarsi immediatamente
+    self.skipWaiting();
     event.waitUntil(
         caches.open(CACHE_NAME).then(cache => {
             return cache.addAll(ASSETS);
@@ -15,8 +17,22 @@ self.addEventListener('install', event => {
     );
 });
 
+self.addEventListener('activate', event => {
+    // Pulisce le cache obsolete (come la v1)
+    event.waitUntil(
+        caches.keys().then(cacheNames => {
+            return Promise.all(
+                cacheNames.map(cache => {
+                    if (cache !== CACHE_NAME) {
+                        return caches.delete(cache);
+                    }
+                })
+            );
+        })
+    );
+});
+
 self.addEventListener('fetch', event => {
-    // Escludi le chiamate API di RainViewer e i tile mappa dalla cache forzata
     if (event.request.url.includes('rainviewer') || event.request.url.includes('tile')) {
         return;
     }
