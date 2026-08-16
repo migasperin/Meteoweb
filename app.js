@@ -1,5 +1,5 @@
 // Configurazione Iniziale
-const defaultLocation = [45.4064, 11.8767]; // Padova
+const defaultLocation = [46.0160, 11.9080]; // Feltre
 const map = L.map('map', { zoomControl: false }).setView(defaultLocation, 7);
 L.control.zoom({ position: 'bottomright' }).addTo(map);
 
@@ -15,6 +15,7 @@ let currentFrame = 0;
 let animationTimer = null;
 let isPlaying = true;
 let dataRefreshInterval = null;
+let locationMarker = null;
 
 const apiEndpoint = "https://api.rainviewer.com/public/weather-maps.json";
 
@@ -31,16 +32,20 @@ async function fetchRadarData() {
         const response = await fetch(apiEndpoint);
         const data = await response.json();
         
-        // Uniamo radar passato (radar) e previsioni future (nowcast)
-        timestamps = [...data.radar.past, ...data.radar.nowcast];
+        // Estraiamo solo i primi 3 frame del nowcast (3 x 10 min = 30 minuti)
+        const thirtyMinForecast = data.radar.nowcast.slice(0, 3);
+        
+        // Uniamo radar passato e previsioni future limitate alla mezz'ora
+        timestamps = [...data.radar.past, ...thirtyMinForecast];
         
         // Pulizia layer precedenti
         radarLayers.forEach(layer => map.removeLayer(layer));
         radarLayers = [];
 
-        // Generazione dei layer sulla mappa (invisibili di default)
+        // Generazione dei layer sulla mappa
         timestamps.forEach((ts) => {
-            const tilePath = `${data.host}${ts.path}/256/{z}/{x}/{y}/2/1_1.png`; // 2 = Color scheme classico radar
+            // Aumentata risoluzione a 512px e cambiato schema colori (6 = NEXRAD) per maggiore precisione visiva
+            const tilePath = `${data.host}${ts.path}/512/{z}/{x}/{y}/6/1_1.png`;
             const layer = L.tileLayer(tilePath, {
                 opacity: 0,
                 zIndex: 10
@@ -61,16 +66,12 @@ async function fetchRadarData() {
 
 // 2. Motore di Animazione
 function showFrame(index) {
-    // Nascondi tutti
     radarLayers.forEach(layer => layer.setOpacity(0));
-    // Mostra corrente
     radarLayers[index].setOpacity(0.7);
 
-    // Formatta orario
     const date = new Date(timestamps[index].time * 1000);
     const timeString = date.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
     
-    // Controlla se è una previsione (nel futuro rispetto a ora)
     const isForecast = (timestamps[index].time * 1000) > Date.now();
     
     if (isForecast) {
@@ -84,7 +85,6 @@ function advanceFrame() {
     currentFrame = (currentFrame + 1) % timestamps.length;
     showFrame(currentFrame);
     
-    // Pausa più lunga all'ultimo frame (now) prima di riniziare
     const speed = (currentFrame === timestamps.length - 1) ? 2000 : 500;
     
     if (isPlaying) {
@@ -121,7 +121,17 @@ async function searchLocation() {
         if (results.length > 0) {
             const lat = parseFloat(results[0].lat);
             const lon = parseFloat(results[0].lon);
-            map.flyTo([lat, lon], 9); // Zoom dinamico
+            
+            map.flyTo([lat, lon], 10);
+            
+            // Rimuovi il marker precedente se esiste
+            if (locationMarker) {
+                map.removeLayer(locationMarker);
+            }
+            
+            // Aggiungi un nuovo pin sulla mappa
+            locationMarker = L.marker([lat, lon]).addTo(map);
+            locationMarker.bindPopup(`<b>${results[0].display_name.split(',')[0]}</b>`).openPopup();
         } else {
             alert("Luogo non trovato.");
         }
