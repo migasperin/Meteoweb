@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Radar Meteo Live</title>
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#1a202c">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="ui-overlay">
+        <div class="panel controls">
+            <div class="search-box">
+                <input type="text" id="location-input" placeholder="Cerca luogo (es. Padova)">
+                <button id="search-btn">Cerca</button>
+            </div>
+            <select id="refresh-rate">
+                <option value="5">Aggiorna dati: 5 min</option>
+                <option value="10" selected>Aggiorna dati: 10 min</option>
+                <option value="30">Aggiorna dati: 30 min</option>
+            </select>
+        </div>
+        <div class="panel player">
+            <button id="play-pause-btn">⏸ Pausa</button>
+            <div id="timestamp" class="time-display">Caricamento radar...</div>
+        </div>
+    </div>
+    
+    <div id="map"></div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="app.js"></script>
+    <script>
+        // Registrazione del Service Worker per renderla una PWA
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js')
+                .then(() => console.log('Service Worker registrato con successo.'))
+                .catch(err => console.error('Errore registrazione SW:', err));
+        }
+    </script>
+</body>
+</html>
